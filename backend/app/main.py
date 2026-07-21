@@ -1,16 +1,18 @@
 from fastapi import FastAPI
 
+from app.core.config import settings
+
 app = FastAPI(
-    title="MastiskhNet API",
-    description="Backend API for AI-Powered Brain Tumor Analysis",
-    version="1.0.0"
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    debug=settings.DEBUG,
 )
 
 
 @app.get("/")
 def root():
     return {
-        "message": "Welcome to MastiskhNet Backend"
+        "message": f"Welcome to {settings.APP_NAME}"
     }
 
 
