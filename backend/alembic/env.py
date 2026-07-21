@@ -6,6 +6,9 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
+from app.models.user import User
+from app.models.mri_scan import MRIScan
+
 # ==========================================================
 # Add project root to Python path
 # ==========================================================
@@ -16,6 +19,7 @@ sys.path.append(os.getcwd())
 # ==========================================================
 from app.core.config import settings
 from app.database.base import Base
+from app.models import *
 
 # ==========================================================
 # Alembic Config
@@ -74,3 +78,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+    
