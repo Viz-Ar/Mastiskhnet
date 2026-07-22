@@ -1,8 +1,19 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum as SqlEnum,
+    Integer,
+    String,
+)
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.database.base import Base
 
@@ -16,7 +27,15 @@ class UserRole(str, Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # ==========================================
+    # Basic Information
+    # ==========================================
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     email: Mapped[str] = mapped_column(
         String(255),
@@ -59,4 +78,40 @@ class User(Base):
         DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    # ==========================================
+    # MRI Relationships
+    # ==========================================
+
+    patient_scans = relationship(
+        "MRIScan",
+        foreign_keys="MRIScan.patient_id",
+        back_populates="patient",
+        cascade="all, delete-orphan"
+    )
+
+    doctor_scans = relationship(
+        "MRIScan",
+        foreign_keys="MRIScan.doctor_id",
+        back_populates="doctor",
+        cascade="all, delete-orphan"
+    )
+
+    # ==========================================
+    # Chat Relationships
+    # ==========================================
+
+    sent_messages = relationship(
+        "ChatMessage",
+        foreign_keys="ChatMessage.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan"
+    )
+
+    received_messages = relationship(
+        "ChatMessage",
+        foreign_keys="ChatMessage.receiver_id",
+        back_populates="receiver",
+        cascade="all, delete-orphan"
     )

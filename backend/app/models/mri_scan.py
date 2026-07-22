@@ -4,14 +4,12 @@ from sqlalchemy import (
     String,
     DateTime,
     ForeignKey,
-    Text
 )
 
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
-
 
 
 class MRIScan(Base):
@@ -40,28 +38,38 @@ class MRIScan(Base):
     )
 
 
-    # Original uploaded file
+    # ==========================================
+    # MRI Modalities
+    # ==========================================
 
-    original_filename = Column(
+    flair_file = Column(
         String,
         nullable=False
     )
 
 
-    stored_filename = Column(
-        String,
-        nullable=False,
-        unique=True
-    )
-
-
-    file_path = Column(
+    t1_file = Column(
         String,
         nullable=False
     )
 
 
-    # AI outputs
+    t1ce_file = Column(
+        String,
+        nullable=False
+    )
+
+
+    t2_file = Column(
+        String,
+        nullable=False
+    )
+
+
+
+    # ==========================================
+    # AI Outputs
+    # ==========================================
 
     mask_file = Column(
         String,
@@ -81,6 +89,12 @@ class MRIScan(Base):
     )
 
 
+    report_file = Column(
+        String,
+        nullable=True
+    )
+
+
     prediction_status = Column(
         String,
         default="Pending"
@@ -93,6 +107,11 @@ class MRIScan(Base):
     )
 
 
+
+    # ==========================================
+    # Relationships
+    # ==========================================
+
     patient = relationship(
         "User",
         foreign_keys=[patient_id],
@@ -104,10 +123,4 @@ class MRIScan(Base):
         "User",
         foreign_keys=[doctor_id],
         back_populates="doctor_scans"
-    )
-    
-    report = relationship(
-        "MedicalReport",
-        back_populates="scan",
-        uselist=False
     )

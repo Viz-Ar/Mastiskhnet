@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import nibabel as nib
 
@@ -5,13 +6,11 @@ import nibabel as nib
 
 LABELS = {
 
-    0: "Background",
+    0: "Necrotic Tumor",
 
-    1: "Necrotic Tumor",
+    1: "Edema",
 
-    2: "Edema",
-
-    3: "Enhancing Tumor"
+    2: "Enhancing Tumor"
 
 }
 
@@ -51,10 +50,10 @@ def calculate_statistics(
     )
 
 
-    total_voxels = prediction.size
-
-
     statistics = {}
+
+
+    total_voxels = prediction.size
 
 
 
@@ -67,9 +66,11 @@ def calculate_statistics(
 
 
         volume_mm3 = (
+
             voxel_count
             *
             voxel_volume
+
         )
 
 
@@ -89,30 +90,61 @@ def calculate_statistics(
 
 
             "voxels":
-
-            int(voxel_count),
-
+                int(voxel_count),
 
 
             "volume_mm3":
-
-            float(volume_mm3),
-
+                float(volume_mm3),
 
 
             "volume_cm3":
-
-            float(
-                volume_mm3 / 1000
-            ),
-
+                float(
+                    volume_mm3 / 1000
+                ),
 
 
             "percentage":
-
-            float(percentage)
+                float(percentage)
 
         }
 
 
     return statistics
+
+
+def save_prediction_nifti(
+    prediction,
+    reference_mri,
+    output_dir
+):
+    """
+    Save prediction as NIfTI while preserving
+    the original MRI affine and header.
+    """
+
+    reference = nib.load(reference_mri)
+
+    affine = reference.affine
+    header = reference.header.copy()
+
+    prediction = prediction.astype(np.uint8)
+
+    prediction_img = nib.Nifti1Image(
+        prediction,
+        affine,
+        header
+    )
+
+    output_path = os.path.join(
+        output_dir,
+        "prediction_mask.nii.gz"
+    )
+
+    nib.save(
+        prediction_img,
+        output_path
+    )
+
+    print(f"Prediction saved to: {output_path}")
+
+    return output_path

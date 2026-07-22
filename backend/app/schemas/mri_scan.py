@@ -1,6 +1,11 @@
-from pydantic import BaseModel
 from datetime import datetime
 
+from pydantic import BaseModel
+
+
+# ==========================================
+# MRI Scan Response
+# ==========================================
 
 class MRIScanResponse(BaseModel):
 
@@ -10,11 +15,13 @@ class MRIScanResponse(BaseModel):
 
     doctor_id: int
 
-    original_filename: str
+    flair_file: str
 
-    stored_filename: str
+    t1_file: str
 
-    file_path: str
+    t1ce_file: str
+
+    t2_file: str
 
     prediction_status: str
 
@@ -22,3 +29,14 @@ class MRIScanResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ==========================================
+# Upload Response
+# ==========================================
+
+class UploadResponse(BaseModel):
+
+    message: str
+
+    scan_id: int
