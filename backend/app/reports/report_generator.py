@@ -6,150 +6,181 @@ MastiskhNet PDF Report Generator
 
 import os
 
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
-    Spacer
+    Spacer,
+    Table,
+    TableStyle,
 )
+from reportlab.lib.units import inch
 
 
 def generate_report(
     scan,
     statistics,
-    output_dir
+    output_dir,
 ):
     """
-    Generate PDF report for one MRI scan.
+    Generate a professional PDF report.
 
     Parameters
     ----------
     scan : MRIScan
-        Database object
-
     statistics : dict
-        Tumor statistics
-
     output_dir : str
-        Folder where report will be saved
 
     Returns
     -------
     str
-        Path to generated PDF
     """
 
     os.makedirs(output_dir, exist_ok=True)
 
     report_path = os.path.join(
         output_dir,
-        "brain_tumor_report.pdf"
+        "brain_tumor_report.pdf",
     )
 
     doc = SimpleDocTemplate(report_path)
 
     styles = getSampleStyleSheet()
 
+    title_style = styles["Title"]
+    title_style.alignment = TA_CENTER
+
     elements = []
 
-    # =====================================
-    # Title
-    # =====================================
+    # =====================================================
+    # TITLE
+    # =====================================================
 
     elements.append(
         Paragraph(
-            "<b>MastiskhNet Brain Tumor Analysis Report</b>",
-            styles["Title"]
+            "MastiskhNet Brain Tumor Analysis Report",
+            title_style,
         )
     )
 
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 0.35 * inch))
 
-    # =====================================
-    # Scan Information
-    # =====================================
+    # =====================================================
+    # SCAN DETAILS
+    # =====================================================
 
-    elements.append(
-        Paragraph(
-            f"<b>Scan ID:</b> {scan.id}",
-            styles["Normal"]
+    scan_data = [
+        ["Scan ID", str(scan.id)],
+        ["Patient ID", str(scan.patient_id)],
+        ["Doctor ID", str(scan.doctor_id)],
+        ["Prediction Status", "Completed"],
+        ["Generated Report", "Yes"],
+    ]
+
+    table = Table(scan_data, colWidths=[2.2 * inch, 3.5 * inch])
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
         )
     )
 
-    elements.append(
-        Paragraph(
-            f"<b>Patient ID:</b> {scan.patient_id}",
-            styles["Normal"]
-        )
-    )
+    elements.append(table)
 
-    elements.append(
-        Paragraph(
-            f"<b>Doctor ID:</b> {scan.doctor_id}",
-            styles["Normal"]
-        )
-    )
+    elements.append(Spacer(1, 0.4 * inch))
 
-    elements.append(
-        Paragraph(
-            f"<b>Status:</b> {scan.prediction_status}",
-            styles["Normal"]
-        )
-    )
-
-    elements.append(Spacer(1, 20))
-
-    # =====================================
-    # Tumor Statistics
-    # =====================================
+    # =====================================================
+    # TUMOR STATISTICS
+    # =====================================================
 
     elements.append(
         Paragraph(
             "<b>Tumor Statistics</b>",
-            styles["Heading2"]
+            styles["Heading2"],
         )
     )
 
     elements.append(Spacer(1, 10))
 
+    stats_table = [[
+        "Tumor Type",
+        "Voxels",
+        "Volume (mm³)",
+        "Volume (cm³)",
+        "Percentage"
+    ]]
+
     for tumor_type, values in statistics.items():
 
-        elements.append(
-            Paragraph(
-                f"<b>{tumor_type}</b>",
-                styles["Heading3"]
-            )
+        stats_table.append(
+            [
+                tumor_type,
+                str(values["voxels"]),
+                f'{values["volume_mm3"]:.2f}',
+                f'{values["volume_cm3"]:.2f}',
+                f'{values["percentage"]:.2f}%',
+            ]
         )
 
-        elements.append(
-            Paragraph(
-                f"Voxel Count: {values['voxels']}",
-                styles["Normal"]
-            )
-        )
+    table = Table(stats_table)
 
-        elements.append(
-            Paragraph(
-                f"Volume (mm³): {values['volume_mm3']:.2f}",
-                styles["Normal"]
-            )
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ]
         )
+    )
 
-        elements.append(
-            Paragraph(
-                f"Volume (cm³): {values['volume_cm3']:.2f}",
-                styles["Normal"]
-            )
+    elements.append(table)
+
+    elements.append(Spacer(1, 0.4 * inch))
+
+    # =====================================================
+    # CONCLUSION
+    # =====================================================
+
+    elements.append(
+        Paragraph(
+            "<b>Conclusion</b>",
+            styles["Heading2"],
         )
+    )
 
-        elements.append(
-            Paragraph(
-                f"Percentage: {values['percentage']:.2f}%",
-                styles["Normal"]
-            )
+    elements.append(Spacer(1, 8))
+
+    elements.append(
+        Paragraph(
+            "The MRI scan has been processed successfully using the "
+            "MastiskhNet deep learning pipeline. The segmentation mask, "
+            "3D tumor mesh, and quantitative tumor statistics have been "
+            "generated automatically.",
+            styles["BodyText"],
         )
+    )
 
-        elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 20))
+
+    elements.append(
+        Paragraph(
+            "<i>This report was automatically generated by MastiskhNet.</i>",
+            styles["Italic"],
+        )
+    )
 
     doc.build(elements)
 

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -39,6 +40,18 @@ app = FastAPI(
 )
 
 # ==================================
+# CORS Configuration
+# ==================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ==================================
 # Register Routers
 # ==================================
 
@@ -56,7 +69,7 @@ app.include_router(websocket_router)
 def root():
     return {
         "message": f"Welcome to {settings.APP_NAME}",
-        "version": settings.APP_VERSION
+        "version": settings.APP_VERSION,
     }
 
 # ==================================
@@ -67,7 +80,7 @@ def root():
 def health_check():
     return {
         "status": "healthy",
-        "message": "Backend is running successfully."
+        "message": "Backend is running successfully.",
     }
 
 # ==================================
@@ -91,12 +104,12 @@ def db_test():
             text("""
                 SELECT tablename
                 FROM pg_tables
-                WHERE schemaname = 'public';
+                WHERE schemaname='public';
             """)
         ).fetchall()
 
     return {
         "database": database,
         "schema": schema,
-        "tables": [table[0] for table in tables]
+        "tables": [table[0] for table in tables],
     }

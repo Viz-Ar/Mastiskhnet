@@ -20,7 +20,6 @@ from app.models.mri_scan import MRIScan
 from app.models.user import User
 
 
-
 router = APIRouter(
     prefix="/mri",
     tags=["MRI"]
@@ -28,36 +27,31 @@ router = APIRouter(
 
 
 
-# ==================================================
-# Access Control
-# ==================================================
+# =====================================================
+# ACCESS CONTROL
+# =====================================================
 
 def check_scan_access(
     scan: MRIScan,
     current_user: User
 ):
 
-    # Admin can access everything
     if current_user.role == "admin":
         return
 
 
-    # Patient can access only own scans
     if current_user.role == "patient":
 
         if scan.patient_id != current_user.id:
-
             raise HTTPException(
                 status_code=403,
                 detail="Access denied"
             )
 
 
-    # Doctor can access only assigned scans
     elif current_user.role == "doctor":
 
         if scan.doctor_id != current_user.id:
-
             raise HTTPException(
                 status_code=403,
                 detail="Access denied"
@@ -73,9 +67,9 @@ def check_scan_access(
 
 
 
-# ==================================================
-# Upload MRI
-# ==================================================
+# =====================================================
+# UPLOAD MRI
+# =====================================================
 
 @router.post("/upload")
 async def upload_scan(
@@ -83,11 +77,8 @@ async def upload_scan(
     patient_id: int = Form(...),
 
     flair: UploadFile = File(...),
-
     t1: UploadFile = File(...),
-
     t1ce: UploadFile = File(...),
-
     t2: UploadFile = File(...),
 
     db: Session = Depends(get_database),
@@ -95,9 +86,6 @@ async def upload_scan(
     current_user: User = Depends(get_current_user)
 
 ):
-
-
-    # Only doctor can upload MRI
 
     if current_user.role != "doctor":
 
@@ -117,61 +105,51 @@ async def upload_scan(
         current_user.id,
 
         flair,
-
         t1,
-
         t1ce,
-
         t2
-
     )
 
 
     return {
 
-        "message": "MRI uploaded successfully",
+        "message":"MRI uploaded successfully",
 
-        "scan_id": scan.id,
+        "scan_id":scan.id,
 
-        "status": scan.prediction_status
+        "status":scan.prediction_status
 
     }
 
 
 
 
-
-# ==================================================
-# MRI Details
-# ==================================================
+# =====================================================
+# GET SINGLE SCAN
+# =====================================================
 
 @router.get("/{scan_id}")
 def get_scan(
 
-    scan_id: int,
+    scan_id:int,
 
-    db: Session = Depends(get_database),
+    db:Session=Depends(get_database),
 
-    current_user: User = Depends(get_current_user)
+    current_user:User=Depends(get_current_user)
 
 ):
 
-
-    scan = db.query(MRIScan).filter(
-
-        MRIScan.id == scan_id
-
+    scan=db.query(MRIScan).filter(
+        MRIScan.id==scan_id
     ).first()
 
 
-
-    if scan is None:
+    if not scan:
 
         raise HTTPException(
             status_code=404,
             detail="Scan not found"
         )
-
 
 
     check_scan_access(
@@ -180,34 +158,29 @@ def get_scan(
     )
 
 
-
     return {
 
-        "id": scan.id,
+        "id":scan.id,
 
-        "patient_id": scan.patient_id,
+        "patient_id":scan.patient_id,
 
-        "doctor_id": scan.doctor_id,
+        "doctor_id":scan.doctor_id,
 
-        "prediction_status": scan.prediction_status,
+        "prediction_status":scan.prediction_status,
 
-        "created_at": scan.created_at,
-
-
-        "files": {
-
-            "mask":
-                f"/mri/{scan.id}/mask",
+        "created_at":scan.created_at,
 
 
-            "mesh":
-                f"/mri/{scan.id}/mesh",
+        "report_url":
+            f"/mri/{scan.id}/report",
 
 
-            "report":
-                f"/mri/{scan.id}/report"
+        "mask_url":
+            f"/mri/{scan.id}/mask",
 
-        }
+
+        "mesh_url":
+            f"/mri/{scan.id}/mesh"
 
     }
 
@@ -215,157 +188,27 @@ def get_scan(
 
 
 
-# ==================================================
-# Download Mask
-# ==================================================
-
-@router.get("/{scan_id}/mask")
-def download_mask(
-
-    scan_id: int,
-
-    db: Session = Depends(get_database),
-
-    current_user: User = Depends(get_current_user)
-
-):
-
-
-    scan = db.query(MRIScan).filter(
-
-        MRIScan.id == scan_id
-
-    ).first()
-
-
-
-    if scan is None:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Scan not found"
-        )
-
-
-
-    check_scan_access(
-        scan,
-        current_user
-    )
-
-
-
-    if not scan.mask_file:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Mask not found"
-        )
-
-
-
-    return FileResponse(
-
-        path=scan.mask_file,
-
-        media_type="application/gzip",
-
-        filename="tumor_mask.nii.gz"
-
-    )
-
-
-
-
-
-# ==================================================
-# Download Mesh
-# ==================================================
-
-@router.get("/{scan_id}/mesh")
-def download_mesh(
-
-    scan_id: int,
-
-    db: Session = Depends(get_database),
-
-    current_user: User = Depends(get_current_user)
-
-):
-
-
-    scan = db.query(MRIScan).filter(
-
-        MRIScan.id == scan_id
-
-    ).first()
-
-
-
-    if scan is None:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Scan not found"
-        )
-
-
-
-    check_scan_access(
-        scan,
-        current_user
-    )
-
-
-
-    if not scan.mesh_file:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Mesh not found"
-        )
-
-
-
-    return FileResponse(
-
-        path=scan.mesh_file,
-
-        media_type="application/octet-stream",
-
-        filename="tumor_mesh.obj"
-
-    )
-
-
-
-
-
-# ==================================================
-# Download PDF Report
-# ==================================================
+# =====================================================
+# REPORT DOWNLOAD
+# =====================================================
 
 @router.get("/{scan_id}/report")
 def download_report(
 
-    scan_id: int,
+    scan_id:int,
 
-    db: Session = Depends(get_database),
+    db:Session=Depends(get_database),
 
-    current_user: User = Depends(get_current_user)
+    current_user:User=Depends(get_current_user)
 
 ):
 
-
-    scan = db.query(MRIScan).filter(
-
-        MRIScan.id == scan_id
-
+    scan=db.query(MRIScan).filter(
+        MRIScan.id==scan_id
     ).first()
 
 
-
-    if scan is None:
+    if not scan:
 
         raise HTTPException(
             status_code=404,
@@ -373,12 +216,10 @@ def download_report(
         )
 
 
-
     check_scan_access(
         scan,
         current_user
     )
-
 
 
     if not scan.report_file:
@@ -387,7 +228,6 @@ def download_report(
             status_code=404,
             detail="Report not generated"
         )
-
 
 
     return FileResponse(
@@ -404,12 +244,128 @@ def download_report(
 
 
 
+# =====================================================
+# MASK DOWNLOAD
+# =====================================================
+
+@router.get("/{scan_id}/mask")
+def download_mask(
+
+    scan_id:int,
+
+    db:Session=Depends(get_database),
+
+    current_user:User=Depends(get_current_user)
+
+):
+
+    scan=db.query(MRIScan).filter(
+        MRIScan.id==scan_id
+    ).first()
+
+
+    if not scan:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Scan not found"
+        )
+
+
+    check_scan_access(
+        scan,
+        current_user
+    )
+
+
+    if not scan.mask_file:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Mask not found"
+        )
+
+
+    return FileResponse(
+
+        path=scan.mask_file,
+
+        media_type="application/gzip",
+
+        filename="tumor_mask.nii.gz"
+
+    )
+
+
+
+
+
+# =====================================================
+# MESH DOWNLOAD
+# =====================================================
+
+@router.get("/{scan_id}/mesh")
+def download_mesh(
+
+    scan_id:int,
+
+    db:Session=Depends(get_database),
+
+    current_user:User=Depends(get_current_user)
+
+):
+
+    scan=db.query(MRIScan).filter(
+        MRIScan.id==scan_id
+    ).first()
+
+
+    if not scan:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Scan not found"
+        )
+
+
+    check_scan_access(
+        scan,
+        current_user
+    )
+
+
+    if not scan.mesh_file:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Mesh not found"
+        )
+
+
+    return FileResponse(
+
+        path=scan.mesh_file,
+
+        media_type="application/octet-stream",
+
+        filename="tumor_mesh.obj"
+
+    )
+
+
+
+
+
+# =====================================================
+# PATIENT HISTORY
+# =====================================================
+
 # ==================================================
-# Patient History
+# Latest Doctor For Patient
 # ==================================================
 
-@router.get("/history/patient/{patient_id}")
-def patient_history(
+@router.get("/latest-doctor/{patient_id}")
+def latest_doctor(
 
     patient_id: int,
 
@@ -419,7 +375,7 @@ def patient_history(
 
 ):
 
-
+    # Patient can only access their own doctor
     if current_user.role == "patient":
 
         if current_user.id != patient_id:
@@ -429,42 +385,53 @@ def patient_history(
                 detail="Access denied"
             )
 
+    scan = (
+        db.query(MRIScan)
+        .filter(
+            MRIScan.patient_id == patient_id
+        )
+        .order_by(
+            MRIScan.created_at.desc()
+        )
+        .first()
+    )
 
-    scans = db.query(MRIScan).filter(
+    if scan is None:
 
-        MRIScan.patient_id == patient_id
+        raise HTTPException(
+            status_code=404,
+            detail="No MRI found"
+        )
 
-    ).order_by(
+    return {
 
-        MRIScan.created_at.desc()
+        "doctor_id": scan.doctor_id,
 
-    ).all()
+        "scan_id": scan.id
 
-
-
-    return scans
-
-
-
+    }
 
 
-# ==================================================
-# Doctor History
-# ==================================================
+
+
+
+# =====================================================
+# DOCTOR HISTORY
+# =====================================================
 
 @router.get("/history/doctor/{doctor_id}")
 def doctor_history(
 
-    doctor_id: int,
+    doctor_id:int,
 
-    db: Session = Depends(get_database),
+    db:Session=Depends(get_database),
 
-    current_user: User = Depends(get_current_user)
+    current_user:User=Depends(get_current_user)
 
 ):
 
 
-    if current_user.role == "doctor":
+    if current_user.role=="doctor":
 
         if current_user.id != doctor_id:
 
@@ -474,9 +441,9 @@ def doctor_history(
             )
 
 
-    scans = db.query(MRIScan).filter(
+    scans=db.query(MRIScan).filter(
 
-        MRIScan.doctor_id == doctor_id
+        MRIScan.doctor_id==doctor_id
 
     ).order_by(
 
@@ -486,4 +453,39 @@ def doctor_history(
 
 
 
-    return scans
+    return [
+
+        {
+
+            "id":scan.id,
+
+            "patient_id":scan.patient_id,
+
+            "doctor_id":scan.doctor_id,
+
+            "prediction_status":scan.prediction_status,
+
+            "created_at":scan.created_at,
+
+
+            "report_file":scan.report_file,
+
+            "mask_file":scan.mask_file,
+
+            "mesh_file":scan.mesh_file,
+
+
+            "report_url":
+                f"/mri/{scan.id}/report",
+
+            "mask_url":
+                f"/mri/{scan.id}/mask",
+
+            "mesh_url":
+                f"/mri/{scan.id}/mesh"
+
+        }
+
+        for scan in scans
+
+    ]

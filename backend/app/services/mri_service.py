@@ -12,9 +12,7 @@ from app.reports.report_generator import generate_report
 UPLOAD_FOLDER = "storage/mri_scans"
 
 
-
 class MRIService:
-
 
     def __init__(self, db: Session):
 
@@ -24,8 +22,6 @@ class MRIService:
             UPLOAD_FOLDER,
             exist_ok=True
         )
-
-
 
     async def upload_scan(
 
@@ -45,34 +41,21 @@ class MRIService:
 
     ):
 
-
         # ==========================================
         # Create unique MRI case folder
         # ==========================================
 
-        case_id = str(
-            uuid.uuid4()
-        )
-
+        case_id = str(uuid.uuid4())
 
         case_folder = os.path.join(
-
             UPLOAD_FOLDER,
-
             case_id
-
         )
-
 
         os.makedirs(
-
             case_folder,
-
             exist_ok=True
-
         )
-
-
 
         # ==========================================
         # Save MRI files
@@ -80,49 +63,28 @@ class MRIService:
 
         saved_files = {}
 
-
         files = {
-
             "flair": flair,
-
             "t1": t1,
-
             "t1ce": t1ce,
-
-            "t2": t2
-
+            "t2": t2,
         }
-
-
 
         for modality, file in files.items():
 
-
             extension = file.filename.split(".")[-1]
-
 
             filename = f"{modality}.{extension}"
 
-
             filepath = os.path.join(
-
                 case_folder,
-
-                filename
-
+                filename,
             )
 
-
             with open(filepath, "wb") as buffer:
-
-                buffer.write(
-                    await file.read()
-                )
-
+                buffer.write(await file.read())
 
             saved_files[modality] = filepath
-
-
 
         # ==========================================
         # Create Database Scan Record
@@ -146,14 +108,11 @@ class MRIService:
 
         )
 
-
         self.db.add(scan)
 
         self.db.commit()
 
         self.db.refresh(scan)
-
-
 
         # ==========================================
         # Run AI Pipeline
@@ -161,12 +120,7 @@ class MRIService:
 
         try:
 
-
-            print(
-                "\n========== Starting AI Prediction ==========\n"
-            )
-
-
+            print("\n========== Starting AI Prediction ==========\n")
 
             prediction = predict_brain_tumor(
 
@@ -182,16 +136,25 @@ class MRIService:
 
             )
 
+            # ==========================================
+            # Save AI Results
+            # ==========================================
 
+            scan.mask_file = prediction["mask_file"]
+
+            scan.mesh_file = prediction["mesh_file"]
+
+            scan.prediction_status = "Completed"
+
+            self.db.commit()
+
+            self.db.refresh(scan)
 
             # ==========================================
             # Generate PDF Report
             # ==========================================
 
-            print(
-                "Generating PDF report..."
-            )
-
+            print("Generating PDF report...")
 
             report_file = generate_report(
 
@@ -203,86 +166,37 @@ class MRIService:
 
             )
 
-
-
-            # ==========================================
-            # Save AI Results in Database
-            # ==========================================
-
-            scan.mask_file = prediction["mask_file"]
-
-
-            scan.mesh_file = prediction["mesh_file"]
-
-
             scan.report_file = report_file
-
-
-            scan.prediction_status = "Completed"
-
-
 
             self.db.commit()
 
             self.db.refresh(scan)
 
+            print("\n========== AI Prediction Completed ==========\n")
 
+            print("Mask File:", scan.mask_file)
 
-            print(
-                "\n========== AI Prediction Completed ==========\n"
-            )
+            print("Mesh File:", scan.mesh_file)
 
+            print("Report File:", scan.report_file)
 
-            print(
-                "Mask File:",
-                scan.mask_file
-            )
+            print("Statistics:")
 
+            print(prediction["statistics"])
 
-            print(
-                "Mesh File:",
-                scan.mesh_file
-            )
-
-
-            print(
-                "Report File:",
-                scan.report_file
-            )
-
-
-            print(
-                "Statistics:"
-            )
-
-
-            print(
-                prediction["statistics"]
-            )
-
-
-
-        except Exception as e:
+        except Exception:
 
             import traceback
-            
-            
-            print(
-                "\n========== AI Prediction Failed ==========\n"
-            )
+
+            print("\n========== AI Prediction Failed ==========\n")
 
             traceback.print_exc()
 
-
-
             scan.prediction_status = "Failed"
-
 
             self.db.commit()
 
             self.db.refresh(scan)
-
-
 
         # ==========================================
         # Return Scan
