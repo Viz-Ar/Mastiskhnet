@@ -412,9 +412,6 @@ def latest_doctor(
     }
 
 
-
-
-
 # =====================================================
 # DOCTOR HISTORY
 # =====================================================
@@ -422,16 +419,15 @@ def latest_doctor(
 @router.get("/history/doctor/{doctor_id}")
 def doctor_history(
 
-    doctor_id:int,
+    doctor_id: int,
 
-    db:Session=Depends(get_database),
+    db: Session = Depends(get_database),
 
-    current_user:User=Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 
 ):
 
-
-    if current_user.role=="doctor":
+    if current_user.role == "doctor":
 
         if current_user.id != doctor_id:
 
@@ -441,22 +437,112 @@ def doctor_history(
             )
 
 
+    scans = (
+        db.query(MRIScan)
+        .filter(
+            MRIScan.doctor_id == doctor_id
+        )
+        .order_by(
+            MRIScan.created_at.desc()
+        )
+        .all()
+    )
+
+
+    result = []
+
+
+    for scan in scans:
+
+        patient = (
+            db.query(User)
+            .filter(
+                User.id == scan.patient_id
+            )
+            .first()
+        )
+
+
+        result.append({
+
+            "id": scan.id,
+
+            "patient_id": scan.patient_id,
+
+            "patient_name": (
+                patient.full_name
+                if patient
+                else "Unknown Patient"
+            ),
+
+            "patient_email": (
+                patient.email
+                if patient
+                else ""
+            ),
+
+            "doctor_id": scan.doctor_id,
+
+            "prediction_status": scan.prediction_status,
+
+            "created_at": scan.created_at,
+
+
+            "report_file": scan.report_file,
+
+            "mask_file": scan.mask_file,
+
+            "mesh_file": scan.mesh_file,
+
+
+            "report_url":
+                f"/mri/{scan.id}/report",
+
+            "mask_url":
+                f"/mri/{scan.id}/mask",
+
+            "mesh_url":
+                f"/mri/{scan.id}/mesh"
+
+        })
+
+
+    return result
+
+# =====================================================
+# PATIENT HISTORY
+# =====================================================
+
+@router.get("/history/patient/{patient_id}")
+def patient_history(
+
+    patient_id:int,
+
+    db:Session=Depends(get_database),
+
+    current_user:User=Depends(get_current_user)
+
+):
+
+    if current_user.role=="patient":
+
+        if current_user.id != patient_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied"
+            )
+
+
     scans=db.query(MRIScan).filter(
-
-        MRIScan.doctor_id==doctor_id
-
+        MRIScan.patient_id==patient_id
     ).order_by(
-
         MRIScan.created_at.desc()
-
     ).all()
-
 
 
     return [
 
         {
-
             "id":scan.id,
 
             "patient_id":scan.patient_id,
@@ -468,21 +554,14 @@ def doctor_history(
             "created_at":scan.created_at,
 
 
-            "report_file":scan.report_file,
-
-            "mask_file":scan.mask_file,
-
-            "mesh_file":scan.mesh_file,
-
-
             "report_url":
-                f"/mri/{scan.id}/report",
+            f"/mri/{scan.id}/report",
 
             "mask_url":
-                f"/mri/{scan.id}/mask",
+            f"/mri/{scan.id}/mask",
 
             "mesh_url":
-                f"/mri/{scan.id}/mesh"
+            f"/mri/{scan.id}/mesh"
 
         }
 
