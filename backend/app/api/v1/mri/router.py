@@ -19,6 +19,7 @@ from app.services.mri_service import MRIService
 from app.models.mri_scan import MRIScan
 from app.models.user import User
 
+from .status import router as status_router
 
 router = APIRouter(
     prefix="/mri",
@@ -121,9 +122,6 @@ async def upload_scan(
 
     }
 
-
-
-
 # =====================================================
 # GET SINGLE SCAN
 # =====================================================
@@ -156,37 +154,65 @@ def get_scan(
         scan,
         current_user
     )
-
-
+    
     return {
+    "id": scan.id,
 
-        "id":scan.id,
+    "patient_id": scan.patient_id,
+    "doctor_id": scan.doctor_id,
 
-        "patient_id":scan.patient_id,
+    "patient_name": (
+        scan.patient.full_name
+        if scan.patient
+        else None
+    ),
 
-        "doctor_id":scan.doctor_id,
+    "doctor_name": (
+        scan.doctor.full_name
+        if scan.doctor
+        else None
+    ),
 
-        "prediction_status":scan.prediction_status,
+    "prediction_status": scan.prediction_status,
 
-        "created_at":scan.created_at,
+    # ===========================
+    # AI RESULTS
+    # ===========================
 
+    "tumor_type": scan.tumor_type,
 
-        "report_url":
-            f"/mri/{scan.id}/report",
+    "confidence": scan.confidence,
 
+    "tumor_volume": scan.tumor_volume,
 
-        "mask_url":
-            f"/mri/{scan.id}/mask",
+    "tumor_area": scan.tumor_area,
 
+    "processing_time": scan.processing_time,
 
-        "mesh_url":
-            f"/mri/{scan.id}/mesh"
+    "model_name": scan.model_name,
 
-    }
+    # ===========================
+    # Date
+    # ===========================
 
+    "created_at": scan.created_at,
 
+    # ===========================
+    # Files
+    # ===========================
 
+    "report_url": f"/mri/{scan.id}/report",
 
+    "mask_url": f"/mri/{scan.id}/mask",
+
+    "mesh_url": f"/mri/{scan.id}/mesh",
+
+    "overlay_url": (
+        f"/mri/{scan.id}/overlay"
+        if scan.overlay_file
+        else None
+    ),
+}
 
 # =====================================================
 # REPORT DOWNLOAD
@@ -352,13 +378,42 @@ def download_mesh(
 
     )
 
-
-
-
-
 # =====================================================
-# PATIENT HISTORY
+# OVERLAY DOWNLOAD
 # =====================================================
+
+@router.get("/{scan_id}/overlay")
+def download_overlay(
+    scan_id: int,
+    db: Session = Depends(get_database),
+    current_user: User = Depends(get_current_user),
+):
+
+    scan = (
+        db.query(MRIScan)
+        .filter(MRIScan.id == scan_id)
+        .first()
+    )
+
+    if not scan:
+        raise HTTPException(
+            status_code=404,
+            detail="Scan not found",
+        )
+
+    check_scan_access(scan, current_user)
+
+    if not scan.overlay_file:
+        raise HTTPException(
+            status_code=404,
+            detail="Overlay not found",
+        )
+
+    return FileResponse(
+        path=scan.overlay_file,
+        media_type="image/png",
+        filename=f"tumor_overlay_{scan.id}.png",
+    )
 
 # ==================================================
 # Latest Doctor For Patient
@@ -415,7 +470,6 @@ def latest_doctor(
 # =====================================================
 # DOCTOR HISTORY
 # =====================================================
-
 @router.get("/history/doctor/{doctor_id}")
 def doctor_history(
 
@@ -436,7 +490,6 @@ def doctor_history(
                 detail="Access denied"
             )
 
-
     scans = (
         db.query(MRIScan)
         .filter(
@@ -448,9 +501,7 @@ def doctor_history(
         .all()
     )
 
-
     result = []
-
 
     for scan in scans:
 
@@ -461,7 +512,6 @@ def doctor_history(
             )
             .first()
         )
-
 
         result.append({
 
@@ -485,8 +535,31 @@ def doctor_history(
 
             "prediction_status": scan.prediction_status,
 
+            # =====================================
+            # AI RESULTS
+            # =====================================
+
+            "tumor_type": scan.tumor_type,
+
+            "confidence": scan.confidence,
+
+            "tumor_volume": scan.tumor_volume,
+
+            "tumor_area": scan.tumor_area,
+
+            "processing_time": scan.processing_time,
+
+            "model_name": scan.model_name,
+
+            # =====================================
+            # DATE
+            # =====================================
+
             "created_at": scan.created_at,
 
+            # =====================================
+            # FILE PATHS
+            # =====================================
 
             "report_file": scan.report_file,
 
@@ -494,6 +567,11 @@ def doctor_history(
 
             "mesh_file": scan.mesh_file,
 
+            "overlay_file": scan.overlay_file,
+
+            # =====================================
+            # DOWNLOAD URLS
+            # =====================================
 
             "report_url":
                 f"/mri/{scan.id}/report",
@@ -502,29 +580,33 @@ def doctor_history(
                 f"/mri/{scan.id}/mask",
 
             "mesh_url":
-                f"/mri/{scan.id}/mesh"
+                f"/mri/{scan.id}/mesh",
+
+            "overlay_url":
+                (
+                    f"/mri/{scan.id}/overlay"
+                    if scan.overlay_file
+                    else None
+                )
 
         })
 
-
     return result
-
 # =====================================================
 # PATIENT HISTORY
 # =====================================================
-
 @router.get("/history/patient/{patient_id}")
 def patient_history(
 
-    patient_id:int,
+    patient_id: int,
 
-    db:Session=Depends(get_database),
+    db: Session = Depends(get_database),
 
-    current_user:User=Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 
 ):
 
-    if current_user.role=="patient":
+    if current_user.role == "patient":
 
         if current_user.id != patient_id:
             raise HTTPException(
@@ -532,39 +614,88 @@ def patient_history(
                 detail="Access denied"
             )
 
-
-    scans=db.query(MRIScan).filter(
-        MRIScan.patient_id==patient_id
-    ).order_by(
-        MRIScan.created_at.desc()
-    ).all()
-
+    scans = (
+        db.query(MRIScan)
+        .filter(
+            MRIScan.patient_id == patient_id
+        )
+        .order_by(
+            MRIScan.created_at.desc()
+        )
+        .all()
+    )
 
     return [
 
         {
-            "id":scan.id,
 
-            "patient_id":scan.patient_id,
+            "id": scan.id,
 
-            "doctor_id":scan.doctor_id,
+            "patient_id": scan.patient_id,
 
-            "prediction_status":scan.prediction_status,
+            "doctor_id": scan.doctor_id,
 
-            "created_at":scan.created_at,
+            # =====================================
+            # AI RESULTS
+            # =====================================
 
+            "prediction_status": scan.prediction_status,
+
+            "tumor_type": scan.tumor_type,
+
+            "confidence": scan.confidence,
+
+            "tumor_volume": scan.tumor_volume,
+
+            "tumor_area": scan.tumor_area,
+
+            "processing_time": scan.processing_time,
+
+            "model_name": scan.model_name,
+
+            # =====================================
+            # DATE
+            # =====================================
+
+            "created_at": scan.created_at,
+
+            # =====================================
+            # FILES
+            # =====================================
+
+            "report_file": scan.report_file,
+
+            "mask_file": scan.mask_file,
+
+            "mesh_file": scan.mesh_file,
+
+            "overlay_file": scan.overlay_file,
+
+            # =====================================
+            # DOWNLOAD URLS
+            # =====================================
 
             "report_url":
-            f"/mri/{scan.id}/report",
+                f"/mri/{scan.id}/report",
 
             "mask_url":
-            f"/mri/{scan.id}/mask",
+                f"/mri/{scan.id}/mask",
 
             "mesh_url":
-            f"/mri/{scan.id}/mesh"
+                f"/mri/{scan.id}/mesh",
+
+            "overlay_url":
+                (
+                    f"/mri/{scan.id}/overlay"
+                    if scan.overlay_file
+                    else None
+                )
 
         }
 
         for scan in scans
 
     ]
+
+
+router.include_router(status_router)

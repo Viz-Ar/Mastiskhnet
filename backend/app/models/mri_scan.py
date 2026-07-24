@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
+    Float,
     DateTime,
     ForeignKey,
 )
@@ -16,111 +17,161 @@ class MRIScan(Base):
 
     __tablename__ = "mri_scans"
 
+    # =====================================================
+    # PRIMARY INFORMATION
+    # =====================================================
 
     id = Column(
         Integer,
         primary_key=True,
-        index=True
+        index=True,
     )
-
 
     patient_id = Column(
         Integer,
         ForeignKey("users.id"),
-        nullable=False
+        nullable=False,
     )
-
 
     doctor_id = Column(
         Integer,
         ForeignKey("users.id"),
-        nullable=False
+        nullable=False,
     )
 
-
-    # ==========================================
-    # MRI Modalities
-    # ==========================================
+    # =====================================================
+    # MRI MODALITIES
+    # =====================================================
 
     flair_file = Column(
         String,
-        nullable=False
+        nullable=False,
     )
-
 
     t1_file = Column(
         String,
-        nullable=False
+        nullable=False,
     )
-
 
     t1ce_file = Column(
         String,
-        nullable=False
+        nullable=False,
     )
-
 
     t2_file = Column(
         String,
-        nullable=False
+        nullable=False,
     )
 
-
-
-    # ==========================================
-    # AI Outputs
-    # ==========================================
+    # =====================================================
+    # AI GENERATED FILES
+    # =====================================================
 
     mask_file = Column(
         String,
-        nullable=True
+        nullable=True,
     )
-
 
     mesh_file = Column(
         String,
-        nullable=True
+        nullable=True,
     )
-
 
     overlay_file = Column(
         String,
-        nullable=True
+        nullable=True,
     )
-
 
     report_file = Column(
         String,
-        nullable=True
+        nullable=True,
     )
 
+    # =====================================================
+    # AI PREDICTION
+    # =====================================================
 
     prediction_status = Column(
         String,
-        default="Pending"
+        default="Pending",
     )
 
+    tumor_type = Column(
+        String,
+        nullable=True,
+    )
+
+    confidence = Column(
+        Float,
+        nullable=True,
+    )
+
+    tumor_volume = Column(
+        Float,
+        nullable=True,
+    )
+
+    tumor_area = Column(
+        Float,
+        nullable=True,
+    )
+
+    processing_time = Column(
+        Float,
+        nullable=True,
+    )
+
+    model_name = Column(
+        String,
+        default="Attention U-Net",
+        nullable=True,
+    )
+
+    # =====================================================
+    # TIMESTAMP
+    # =====================================================
 
     created_at = Column(
         DateTime(timezone=True),
-        server_default=func.now()
+        server_default=func.now(),
     )
 
-
-
-    # ==========================================
-    # Relationships
-    # ==========================================
+    # =====================================================
+    # RELATIONSHIPS
+    # =====================================================
 
     patient = relationship(
         "User",
         foreign_keys=[patient_id],
-        back_populates="patient_scans"
+        back_populates="patient_scans",
     )
-
 
     doctor = relationship(
         "User",
         foreign_keys=[doctor_id],
-        back_populates="doctor_scans"
+        back_populates="doctor_scans",
     )
+
+    # ==========================================
+# AI Prediction Details
+# ==========================================
+
+tumor_type = Column(
+    String,
+    nullable=True
+)
+
+tumor_volume = Column(
+    String,
+    nullable=True
+)
+
+confidence = Column(
+    String,
+    nullable=True
+)
+
+processing_time = Column(
+    String,
+    nullable=True
+)
