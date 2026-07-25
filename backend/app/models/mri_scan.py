@@ -77,6 +77,16 @@ class MRIScan(Base):
         nullable=True,
     )
 
+    mesh_material_file = Column(
+        String,
+        nullable=True,
+    )
+
+    mesh_glb_file = Column(
+        String,
+        nullable=True,
+    )
+
     overlay_file = Column(
         String,
         nullable=True,
@@ -151,27 +161,3 @@ class MRIScan(Base):
         foreign_keys=[doctor_id],
         back_populates="doctor_scans",
     )
-
-    # ==========================================
-# AI Prediction Details
-# ==========================================
-
-tumor_type = Column(
-    String,
-    nullable=True
-)
-
-tumor_volume = Column(
-    String,
-    nullable=True
-)
-
-confidence = Column(
-    String,
-    nullable=True
-)
-
-processing_time = Column(
-    String,
-    nullable=True
-)

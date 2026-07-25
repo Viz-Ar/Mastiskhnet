@@ -60,7 +60,7 @@ def predict_brain_tumor(
     Output:
         Segmentation mask
         NIfTI mask
-        3D mesh
+        3D mesh (.obj + .glb)
         Tumor statistics
     """
 
@@ -145,22 +145,36 @@ def predict_brain_tumor(
 
 
     # ==================================================
-    # Generate 3D Mesh
+    # Generate 3D Mesh (.obj for download, .glb for viewer)
     # ==================================================
 
     print("\nGenerating 3D tumor mesh...")
 
 
-    mesh_file = generate_mesh(
+    mesh_result = generate_mesh(
         mask_path=mask_file,
         output_dir=output_dir
     )
 
+    mesh_file = None
+    mesh_glb_file = None
+
+    if mesh_result:
+
+        mesh_file = mesh_result.get("obj_path")
+
+        mesh_glb_file = mesh_result.get("glb_path")
+
 
 
     print(
-        "Mesh:",
+        "Mesh (.obj):",
         mesh_file
+    )
+
+    print(
+        "Mesh (.glb):",
+        mesh_glb_file
     )
 
 
@@ -202,8 +216,13 @@ def predict_brain_tumor(
     )
 
     print(
-        "Mesh file:",
+        "Mesh file (.obj):",
         mesh_file
+    )
+
+    print(
+        "Mesh file (.glb):",
+        mesh_glb_file
     )
 
     print(
@@ -228,6 +247,8 @@ def predict_brain_tumor(
         "mask_file": mask_file,
 
         "mesh_file": mesh_file,
+
+        "mesh_glb_file": mesh_glb_file,
 
         "statistics": statistics,
 
