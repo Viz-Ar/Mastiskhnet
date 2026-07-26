@@ -1,30 +1,6 @@
 """
 ========================================================
 MastiskhNet Inference Engine
-
-Pipeline:
-
-Input:
-    Preprocessed MRI tensor
-
-Process:
-    Attention U-Net 3D
-
-Output:
-    Segmentation Mask (.npy)
-
-Responsibilities:
-    ✓ Model inference
-    ✓ GPU/CPU handling
-    ✓ Tensor conversion
-    ✓ Mask saving
-
-Not responsible for:
-    ✗ Statistics
-    ✗ 3D Mesh
-    ✗ Visualization
-    ✗ Report generation
-
 ========================================================
 """
 
@@ -35,8 +11,7 @@ import numpy as np
 
 import torch
 
-
-
+import torch.nn.functional as F
 
 
 def run_inference(
@@ -49,205 +24,82 @@ def run_inference(
 
 ):
 
-
-    """
-    Run MastiskhNet prediction
-
-
-    Parameters
-    ----------
-    input_tensor:
-        Preprocessed MRI tensor
-        Shape:
-        [1,4,128,128,128]
-
-
-    model:
-        Loaded Attention U-Net model
-
-
-    output_dir:
-        Folder for saving prediction
-
-
-    Returns
-    -------
-    numpy.ndarray
-        Segmentation mask
-
-    """
-
-
-
-    # =====================================
-    # Create output directory
-    # =====================================
-
-
     os.makedirs(
-
         output_dir,
-
         exist_ok=True
-
     )
-
-
-
-    # =====================================
-    # Select device
-    # =====================================
-
 
     device = next(
-
         model.parameters()
-
     ).device
 
-
-
     input_tensor = input_tensor.to(
-
         device
-
     )
-
-
-
-    # =====================================
-    # Evaluation mode
-    # =====================================
-
 
     model.eval()
 
-
-
-    # =====================================
-    # Model prediction
-    # =====================================
-
-
     with torch.no_grad():
 
-
         output = model(
-
             input_tensor
-
         )
 
+        # =====================================
+        # Softmax probabilities (before argmax)
+        # Used to compute a confidence score.
+        # =====================================
 
-
-        """
-        Output shape:
-
-        [batch, classes, depth, height, width]
-
-        Example:
-
-        [1,4,128,128,128]
-
-        """
-
-
+        probs = F.softmax(
+            output,
+            dim=1
+        )
 
         prediction = torch.argmax(
-
             output,
-
             dim=1
-
         )
 
+        # Max class probability per voxel
+        max_probs = torch.max(
+            probs,
+            dim=1
+        ).values
 
+    mask = prediction.squeeze(0)
+    max_probs = max_probs.squeeze(0)
 
-    # =====================================
-    # Remove batch dimension
-    # =====================================
-
-
-    mask = prediction.squeeze(
-
-        0
-
-    )
-
-
+    mask = mask.cpu().numpy().astype(np.uint8)
+    max_probs = max_probs.cpu().numpy()
 
     # =====================================
-    # Tensor -> NumPy
+    # Confidence = mean probability over
+    # voxels predicted as tumor (label > 0).
+    # Falls back to 0.0 if no tumor found.
     # =====================================
 
+    tumor_voxels = mask > 0
 
-    mask = mask.cpu().numpy()
+    if np.sum(tumor_voxels) > 0:
 
+        confidence = float(
+            np.mean(max_probs[tumor_voxels]) * 100
+        )
 
+    else:
 
-    # =====================================
-    # Ensure integer mask
-    # =====================================
-
-
-    mask = mask.astype(
-
-        np.uint8
-
-    )
-
-
-
-    # =====================================
-    # Save segmentation mask
-    # =====================================
-
+        confidence = 0.0
 
     mask_path = os.path.join(
-
         output_dir,
-
         "prediction_mask.npy"
-
     )
 
+    np.save(mask_path, mask)
 
+    print(f"Mask saved: {mask_path}")
+    print("Prediction shape:", mask.shape)
+    print("Unique classes:", np.unique(mask))
+    print("Confidence:", round(confidence, 2), "%")
 
-    np.save(
-
-        mask_path,
-
-        mask
-
-    )
-
-
-
-    print(
-
-        f"Mask saved: {mask_path}"
-
-    )
-
-
-
-    print(
-
-        "Prediction shape:",
-
-        mask.shape
-
-    )
-
-
-    print(
-
-        "Unique classes:",
-
-        np.unique(mask)
-
-    )
-
-
-
-    return mask
+    return mask, confidence

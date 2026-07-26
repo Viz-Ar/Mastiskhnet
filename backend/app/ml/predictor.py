@@ -108,12 +108,11 @@ def predict_brain_tumor(
 
     print("\nRunning segmentation...")
 
-    mask = run_inference(
-        input_tensor,
-        model,
-        output_dir
-    )
-
+    mask, confidence = run_inference(
+       input_tensor,
+       model,
+       output_dir
+   )
 
 
     print(
