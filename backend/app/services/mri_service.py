@@ -212,23 +212,8 @@ class MRIService:
 
 
             scan.tumor_volume = float(
-
-                stats.get(
-                    "total_volume",
-                    0.0,
-                )
-
-            )
-
-
-            scan.tumor_area = float(
-
-                stats.get(
-                    "total_area",
-                    0.0,
-                )
-
-            )
+    prediction.get("tumor_volume", 0.0)
+)
 
 
             scan.processing_time = round(
