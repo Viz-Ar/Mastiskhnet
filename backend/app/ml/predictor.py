@@ -204,6 +204,34 @@ def predict_brain_tumor(
 
 
     # ==================================================
+    # Derive summary fields from per-region statistics
+    # ==================================================
+
+    total_volume_cm3 = sum(
+        region["volume_cm3"]
+        for region in statistics.values()
+    )
+
+    detected_regions = {
+        name: region
+        for name, region in statistics.items()
+        if region["voxels"] > 0
+    }
+
+    if detected_regions:
+
+        dominant_region = max(
+            detected_regions,
+            key=lambda name: detected_regions[name]["volume_cm3"]
+        )
+
+    else:
+
+        dominant_region = "No Tumor Detected"
+
+
+
+    # ==================================================
     # Debug Check
     # ==================================================
 
@@ -230,6 +258,21 @@ def predict_brain_tumor(
     )
 
     print(
+        "Dominant region:",
+        dominant_region
+    )
+
+    print(
+        "Confidence:",
+        confidence
+    )
+
+    print(
+        "Total volume (cm3):",
+        total_volume_cm3
+    )
+
+    print(
         "======================================"
     )
 
@@ -250,6 +293,12 @@ def predict_brain_tumor(
         "mesh_glb_file": mesh_glb_file,
 
         "statistics": statistics,
+
+        "tumor_type": dominant_region,
+
+        "confidence": confidence,
+
+        "tumor_volume": total_volume_cm3,
 
         "input": input_tensor
 
