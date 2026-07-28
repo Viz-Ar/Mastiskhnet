@@ -494,13 +494,6 @@ def get_mesh_view_token(
 
     }
 
-    return {
-
-        "view_token": view_token,
-
-        "expires_in_minutes": 10,
-
-    }
 
 def _resolve_mesh_view_scan(
     view_token: str,
