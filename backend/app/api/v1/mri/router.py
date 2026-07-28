@@ -114,6 +114,7 @@ async def upload_mri(
         "confidence": scan.confidence,
         "tumor_volume": scan.tumor_volume,
         "tumor_area": scan.tumor_area,
+        "region_stats": scan.region_stats,
         "processing_time": scan.processing_time,
         "model_name": scan.model_name,
         "created_at": scan.created_at,
@@ -188,6 +189,8 @@ def get_scan(
     "tumor_volume": scan.tumor_volume,
 
     "tumor_area": scan.tumor_area,
+
+    "region_stats": scan.region_stats,
 
     "processing_time": scan.processing_time,
 
@@ -494,7 +497,6 @@ def get_mesh_view_token(
 
     }
 
-
 def _resolve_mesh_view_scan(
     view_token: str,
     db: Session,
@@ -752,6 +754,7 @@ def doctor_history(
                 "confidence": scan.confidence,
                 "tumor_volume": scan.tumor_volume,
                 "tumor_area": scan.tumor_area,
+                "region_stats": scan.region_stats,
                 "processing_time": scan.processing_time,
                 "model_name": scan.model_name,
 
@@ -832,6 +835,7 @@ def patient_history(
             "confidence": scan.confidence,
             "tumor_volume": scan.tumor_volume,
             "tumor_area": scan.tumor_area,
+            "region_stats": scan.region_stats,
             "processing_time": scan.processing_time,
             "model_name": scan.model_name,
 
