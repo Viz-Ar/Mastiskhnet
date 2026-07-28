@@ -5,6 +5,7 @@ from sqlalchemy import (
     Float,
     DateTime,
     ForeignKey,
+    JSON,
 )
 
 from sqlalchemy.sql import func
@@ -134,6 +135,17 @@ class MRIScan(Base):
     model_name = Column(
         String,
         default="Attention U-Net",
+        nullable=True,
+    )
+
+    # =====================================================
+    # PER-REGION BREAKDOWN
+    # (Necrotic / Edema / Enhancing, each with voxels,
+    # volume_mm3, volume_cm3, percentage)
+    # =====================================================
+
+    region_stats = Column(
+        JSON,
         nullable=True,
     )
 
