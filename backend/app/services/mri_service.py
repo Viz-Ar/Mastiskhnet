@@ -166,6 +166,9 @@ class MRIService:
             scan.mesh_glb_file = prediction.get(
                 "mesh_glb_file"
             )
+            scan.region_stats = prediction.get(
+                "statistics"
+            )
 
             scan.mesh_material_file = (
                 os.path.join(
