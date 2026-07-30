@@ -23,11 +23,12 @@ from skimage import measure
 import trimesh
 
 
-# BraTS label convention
+# Label convention matches this model's compacted output (0/1/2/3),
+# NOT the raw BraTS convention (which skips 3 and uses 4 for enhancing).
 LABEL_INFO = {
     1: {"name": "necrotic", "color": [220, 20, 20, 255]},    # red
     2: {"name": "edema", "color": [230, 220, 30, 255]},      # yellow
-    4: {"name": "enhancing", "color": [30, 200, 60, 255]},   # green
+    3: {"name": "enhancing", "color": [30, 200, 60, 255]},   # green
 }
 
 

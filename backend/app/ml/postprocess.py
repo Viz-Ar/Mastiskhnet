@@ -5,9 +5,9 @@ import nibabel as nib
 
 
 LABELS = {
-    0: "Necrotic Tumor",
-    1: "Edema",
-    2: "Enhancing Tumor",
+    1: "Necrotic Tumor",
+    2: "Edema",
+    3: "Enhancing Tumor",
 }
 
 
@@ -169,10 +169,18 @@ def generate_slice_images(
     # Prepare MRI
     # ======================================================
 
-    flair = input_tensor[0]
+    flair = input_tensor
+
+    if hasattr(flair, "detach"):
+        flair = flair.detach().cpu().numpy()
+
+    flair = np.asarray(flair)
+
+    while flair.ndim > 4:
+        flair = flair[0]
 
     if flair.ndim == 4:
-        flair = flair.squeeze(0)
+        flair = flair[0]
 
     flair = flair.astype(np.float32)
 
@@ -209,6 +217,7 @@ def generate_slice_images(
 
         # -----------------------------
         # Colored Segmentation
+        # Matches mesh.py: 1=Necrotic(red), 2=Edema(yellow), 3=Enhancing(green)
         # -----------------------------
 
         segmentation = np.zeros(
@@ -216,9 +225,9 @@ def generate_slice_images(
             dtype=np.uint8,
         )
 
-        segmentation[mask_slice == 1] = (0, 255, 0)      # Green
-        segmentation[mask_slice == 2] = (0, 255, 255)    # Yellow
-        segmentation[mask_slice == 3] = (0, 0, 255)      # Red
+        segmentation[mask_slice == 1] = (0, 0, 255)      # BGR → Red    (Necrotic)
+        segmentation[mask_slice == 2] = (0, 255, 255)    # BGR → Yellow (Edema)
+        segmentation[mask_slice == 3] = (0, 255, 0)      # BGR → Green  (Enhancing)
 
         # -----------------------------
         # Overlay

@@ -99,10 +99,10 @@ def predict_brain_tumor(
     print("\nGenerating Slice Viewer Images...")
 
     slice_result = generate_slice_images(
-        flair_path=flair,
-        prediction=mask,
-        output_dir=output_dir,
-    )
+    input_tensor=input_tensor,
+    prediction=mask,
+    output_dir=output_dir,
+)
 
     print("Original Folder:", slice_result["original_folder"])
     print("Segmentation Folder:", slice_result["segmentation_folder"])
