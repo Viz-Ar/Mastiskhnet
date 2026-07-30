@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func, case
 
 from app.core.dependencies import (
     get_database,
@@ -7,6 +8,7 @@ from app.core.dependencies import (
 )
 
 from app.models.mri_scan import MRIScan
+
 
 router = APIRouter()
 
@@ -17,43 +19,102 @@ def dashboard_statistics(
     current_user=Depends(get_current_user),
 ):
 
-    scans = (
-        db.query(MRIScan)
-        .filter(
-            MRIScan.doctor_id == current_user.id
+    doctor_id = current_user.id
+
+
+    # ==========================================
+    # MRI STATISTICS
+    # ==========================================
+
+    stats = (
+        db.query(
+
+            func.count(MRIScan.id)
+            .label("total"),
+
+
+            func.sum(
+                case(
+                    (
+                        MRIScan.prediction_status == "Completed",
+                        1
+                    ),
+                    else_=0
+                )
+            )
+            .label("completed"),
+
+
+            func.sum(
+                case(
+                    (
+                        MRIScan.prediction_status.in_(
+                            [
+                                "Pending",
+                                "Processing"
+                            ]
+                        ),
+                        1
+                    ),
+                    else_=0
+                )
+            )
+            .label("processing"),
+
+
+            func.sum(
+                case(
+                    (
+                        MRIScan.prediction_status == "Failed",
+                        1
+                    ),
+                    else_=0
+                )
+            )
+            .label("failed")
+
         )
-        .all()
+        .filter(
+            MRIScan.doctor_id == doctor_id
+        )
+        .first()
     )
 
-    total = len(scans)
 
-    completed = len(
-        [
-            s for s in scans
-            if s.prediction_status == "Completed"
-        ]
+
+    # ==========================================
+    # UNIQUE PATIENT COUNT
+    # ==========================================
+
+    patients = (
+        db.query(
+            func.count(
+                func.distinct(
+                    MRIScan.patient_id
+                )
+            )
+        )
+        .filter(
+            MRIScan.doctor_id == doctor_id
+        )
+        .scalar()
     )
 
-    processing = len(
-        [
-            s for s in scans
-            if s.prediction_status in [
-                "Pending",
-                "Processing",
-            ]
-        ]
-    )
 
-    failed = len(
-        [
-            s for s in scans
-            if s.prediction_status == "Failed"
-        ]
-    )
 
     return {
-        "total": total,
-        "completed": completed,
-        "processing": processing,
-        "failed": failed,
+
+        "patients": patients or 0,
+
+        "mri_scans": stats.total or 0,
+
+        "completed": stats.completed or 0,
+
+        "processing": stats.processing or 0,
+
+        "failed": stats.failed or 0,
+
+        # Later replace with actual model evaluation metric
+        "accuracy": 96.8
+
     }

@@ -32,11 +32,11 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-app.include_router(auth_router)
-app.include_router(user_router)
-app.include_router(mri_router)
-app.include_router(chat_router)
-app.include_router(websocket_router)
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(user_router, prefix="/api/v1")
+app.include_router(mri_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
+app.include_router(websocket_router, prefix="/api/v1")
 
 @app.get("/", tags=["Root"])
 def root():

@@ -12,31 +12,27 @@ Segmentation
  |
 Postprocessing
  |
+Slice Generation
+ |
 Statistics
  |
 3D Mesh
-
 ==========================================================
 """
 
-
 import os
 
-
 from app.ml.model_loader import load_model
-
 from app.ml.preprocess import prepare_input
-
 from app.ml.inference import run_inference
-
 from app.ml.mesh import generate_mesh
 
 from app.ml.postprocess import (
     save_prediction_nifti,
     get_voxel_spacing,
-    calculate_statistics
+    calculate_statistics,
+    generate_slice_images,
 )
-
 
 
 def predict_brain_tumor(
@@ -44,41 +40,13 @@ def predict_brain_tumor(
     t1,
     t1ce,
     t2,
-    output_dir="outputs"
+    output_dir="outputs",
 ):
 
-    """
-    Complete MastiskhNet prediction pipeline
-
-    Input:
-        Four MRI modalities:
-        - Flair
-        - T1
-        - T1CE
-        - T2
-
-    Output:
-        Segmentation mask
-        NIfTI mask
-        3D mesh (.obj + .glb)
-        Tumor statistics
-    """
-
-
+    os.makedirs(output_dir, exist_ok=True)
 
     # ==================================================
-    # Create output folder
-    # ==================================================
-
-    os.makedirs(
-        output_dir,
-        exist_ok=True
-    )
-
-
-
-    # ==================================================
-    # Preprocessing
+    # PREPROCESSING
     # ==================================================
 
     print("\nPreparing MRI volumes...")
@@ -87,72 +55,69 @@ def predict_brain_tumor(
         flair,
         t1,
         t1ce,
-        t2
+        t2,
     )
 
-
-
     # ==================================================
-    # Load Model
+    # LOAD MODEL
     # ==================================================
 
-    print("\nLoading model...")
+    print("\nLoading Attention U-Net...")
 
     model = load_model()
 
-
-
     # ==================================================
-    # Segmentation Inference
+    # INFERENCE
     # ==================================================
 
-    print("\nRunning segmentation...")
+    print("\nRunning Segmentation...")
 
     mask, confidence = run_inference(
-       input_tensor,
-       model,
-       output_dir
-   )
-
-
-    print(
-        "Segmentation mask generated"
+        input_tensor,
+        model,
+        output_dir,
     )
 
-
-
     # ==================================================
-    # Save NIfTI Mask
+    # SAVE NIFTI MASK
     # ==================================================
 
-    print("\nSaving NIfTI prediction...")
-
+    print("\nSaving Prediction Mask...")
 
     mask_file = save_prediction_nifti(
         prediction=mask,
         reference_mri=flair,
-        output_dir=output_dir
+        output_dir=output_dir,
     )
 
+    print("Mask Saved:", mask_file)
 
+    # ==================================================
+    # GENERATE SLICE IMAGES
+    # ==================================================
 
-    print(
-        "NIfTI mask:",
-        mask_file
+    print("\nGenerating Slice Viewer Images...")
+
+    slice_result = generate_slice_images(
+        flair_path=flair,
+        prediction=mask,
+        output_dir=output_dir,
     )
 
-
+    print("Original Folder:", slice_result["original_folder"])
+    print("Segmentation Folder:", slice_result["segmentation_folder"])
+    print("Overlay Folder:", slice_result["overlay_folder"])
+    print("Total Slices:", slice_result["total_slices"])
 
     # ==================================================
-    # Generate 3D Mesh (.obj for download, .glb for viewer)
+    # GENERATE 3D MESH
     # ==================================================
 
-    print("\nGenerating 3D tumor mesh...")
-
+    print("\nGenerating 3D Mesh...")
 
     mesh_result = generate_mesh(
         mask_path=mask_file,
-        output_dir=output_dir
+        output_dir=output_dir,
     )
 
     mesh_file = None
@@ -161,51 +126,23 @@ def predict_brain_tumor(
     if mesh_result:
 
         mesh_file = mesh_result.get("obj_path")
-
         mesh_glb_file = mesh_result.get("glb_path")
 
-
-
-    print(
-        "Mesh (.obj):",
-        mesh_file
-    )
-
-    print(
-        "Mesh (.glb):",
-        mesh_glb_file
-    )
-
-
+    print("OBJ:", mesh_file)
+    print("GLB:", mesh_glb_file)
 
     # ==================================================
-    # Tumor Statistics
+    # CALCULATE STATISTICS
     # ==================================================
 
-    print("\nCalculating tumor statistics...")
+    print("\nCalculating Statistics...")
 
-
-    spacing = get_voxel_spacing(
-        flair
-    )
-
+    spacing = get_voxel_spacing(flair)
 
     statistics = calculate_statistics(
         prediction=mask,
-        voxel_spacing=spacing
+        voxel_spacing=spacing,
     )
-
-
-
-    print(
-        "Statistics calculated"
-    )
-
-
-
-    # ==================================================
-    # Derive summary fields from per-region statistics
-    # ==================================================
 
     total_volume_cm3 = sum(
         region["volume_cm3"]
@@ -222,64 +159,43 @@ def predict_brain_tumor(
 
         dominant_region = max(
             detected_regions,
-            key=lambda name: detected_regions[name]["volume_cm3"]
+            key=lambda x: detected_regions[x]["volume_cm3"],
         )
 
     else:
 
         dominant_region = "No Tumor Detected"
 
-
-
     # ==================================================
-    # Debug Check
+    # DEBUG
     # ==================================================
 
-    print("\n========== Prediction Output ==========")
+    print("\n========== MastiskhNet Prediction ==========")
 
-    print(
-        "Mask file:",
-        mask_file
-    )
+    print("Mask File:", mask_file)
 
-    print(
-        "Mesh file (.obj):",
-        mesh_file
-    )
+    print("Mesh OBJ:", mesh_file)
 
-    print(
-        "Mesh file (.glb):",
-        mesh_glb_file
-    )
+    print("Mesh GLB:", mesh_glb_file)
 
-    print(
-        "Statistics:",
-        statistics
-    )
+    print("Original:", slice_result["original_folder"])
 
-    print(
-        "Dominant region:",
-        dominant_region
-    )
+    print("Segmentation:", slice_result["segmentation_folder"])
 
-    print(
-        "Confidence:",
-        confidence
-    )
+    print("Overlay:", slice_result["overlay_folder"])
 
-    print(
-        "Total volume (cm3):",
-        total_volume_cm3
-    )
+    print("Total Slices:", slice_result["total_slices"])
 
-    print(
-        "======================================"
-    )
+    print("Tumor:", dominant_region)
 
+    print("Confidence:", confidence)
 
+    print("Volume:", total_volume_cm3)
+
+    print("============================================")
 
     # ==================================================
-    # Return Result
+    # RETURN
     # ==================================================
 
     return {
@@ -300,6 +216,14 @@ def predict_brain_tumor(
 
         "tumor_volume": total_volume_cm3,
 
-        "input": input_tensor
+        "input": input_tensor,
+
+        "original_folder": slice_result["original_folder"],
+
+        "segmentation_folder": slice_result["segmentation_folder"],
+
+        "overlay_folder": slice_result["overlay_folder"],
+
+        "total_slices": slice_result["total_slices"],
 
     }

@@ -160,27 +160,55 @@ class MRIService:
             )
 
             scan.mesh_file = prediction.get(
-                "mesh_file"
+                 "mesh_file"
             )
 
             scan.mesh_glb_file = prediction.get(
                 "mesh_glb_file"
-            )
+            )   
+
             scan.region_stats = prediction.get(
                 "statistics"
             )
 
-            scan.mesh_material_file = (
-                os.path.join(
-                    os.path.dirname(prediction.get("mesh_file")),
-                    "material.mtl",
+            # =====================================================
+            # Slice Viewer
+            # =====================================================
+
+            scan.original_folder = prediction.get(
+                "original_folder"
                 )
-                if prediction.get("mesh_file")
-                else None
+
+            scan.segmentation_folder = prediction.get(
+                "segmentation_folder"
             )
 
+            scan.overlay_folder = prediction.get(
+                "overlay_folder"
+            )
+
+            scan.total_slices = prediction.get(
+                "total_slices"
+            )
+
+            # Keep compatibility with existing report overlay
             scan.overlay_file = prediction.get(
                 "overlay_file"
+            )
+
+        # =====================================================
+        # Mesh Material
+        # =====================================================
+
+            mesh_file = prediction.get("mesh_file")
+
+            scan.mesh_material_file = (
+                os.path.join(
+                    os.path.dirname(mesh_file),
+                    "material.mtl",
+                )
+                if mesh_file
+                else None
             )
 
 

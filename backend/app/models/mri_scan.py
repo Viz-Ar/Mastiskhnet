@@ -41,7 +41,7 @@ class MRIScan(Base):
     )
 
     # =====================================================
-    # MRI MODALITIES
+    # ORIGINAL MRI FILES
     # =====================================================
 
     flair_file = Column(
@@ -99,7 +99,31 @@ class MRIScan(Base):
     )
 
     # =====================================================
-    # AI PREDICTION
+    # SLICE VIEWER
+    # =====================================================
+
+    original_folder = Column(
+        String,
+        nullable=True,
+    )
+
+    segmentation_folder = Column(
+        String,
+        nullable=True,
+    )
+
+    overlay_folder = Column(
+        String,
+        nullable=True,
+    )
+
+    total_slices = Column(
+        Integer,
+        default=0,
+    )
+
+    # =====================================================
+    # AI PREDICTION RESULTS
     # =====================================================
 
     prediction_status = Column(
@@ -139,9 +163,7 @@ class MRIScan(Base):
     )
 
     # =====================================================
-    # PER-REGION BREAKDOWN
-    # (Necrotic / Edema / Enhancing, each with voxels,
-    # volume_mm3, volume_cm3, percentage)
+    # PER REGION STATISTICS
     # =====================================================
 
     region_stats = Column(
@@ -150,7 +172,7 @@ class MRIScan(Base):
     )
 
     # =====================================================
-    # TIMESTAMP
+    # CREATED DATE
     # =====================================================
 
     created_at = Column(
