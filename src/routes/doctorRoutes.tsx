@@ -53,6 +53,12 @@ export default function DoctorRoutes(){
 
 
             <Route
+                path="predictions/:id"
+                element={<PredictionViewer />}
+            />
+
+
+            <Route
                 path="reports"
                 element={<Reports />}
             />

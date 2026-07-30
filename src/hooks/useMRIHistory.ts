@@ -2,114 +2,77 @@ import { useEffect, useState } from "react";
 
 import { getDoctorMRIHistory } from "../api/mriApi";
 
-
 export interface MRIHistory {
+  id: number;
 
-    id:number;
+  patient_id: number;
 
-    patient_id:number;
+  patient_name: string;
 
-    patient_name:string;
+  patient_email: string;
 
-    patient_email:string;
+  doctor_id: number;
 
-    doctor_id:number;
+  prediction_status: string;
 
-    prediction_status:string;
+  tumor_type: string | null;
 
-    tumor_type:string | null;
+  confidence: number | null;
 
-    confidence:number | null;
+  tumor_volume: number | null;
 
-    tumor_volume:number | null;
-
-    created_at:string;
-
+  created_at: string;
 }
 
-
-
 export default function useMRIHistory(
-    doctorId:number | undefined
-){
+  doctorId: number | undefined
+) {
+  const [history, setHistory] =
+    useState<MRIHistory[]>([]);
 
-    const [history,setHistory] =
-        useState<MRIHistory[]>([]);
+  const [loading, setLoading] =
+    useState<boolean>(true);
 
+  useEffect(() => {
+    if (!doctorId) {
+      setLoading(false);
+      return;
+    }
 
-    const [loading,setLoading] =
-        useState<boolean>(true);
+    const fetchHistory = async () => {
+      try {
+        const data = await getDoctorMRIHistory(
+          doctorId
+        );
 
+        // Keep only one (latest) record per patient
+        const uniquePatients: MRIHistory[] = [];
 
+        const seen = new Set<number>();
 
-    useEffect(()=>{
+        data.forEach((item: MRIHistory) => {
+          if (!seen.has(item.patient_id)) {
+            seen.add(item.patient_id);
+            uniquePatients.push(item);
+          }
+        });
 
-
-        if(!doctorId){
-
-            setLoading(false);
-
-            return;
-
-        }
-
-
-
-        const fetchHistory = async()=>{
-
-
-            try{
-
-
-                const data =
-                    await getDoctorMRIHistory(
-                        doctorId
-                    );
-
-
-                setHistory(data);
-
-
-            }
-            catch(error:any){
-
-
-                console.error(
-                    "Patient history error:",
-                    error.response?.data ||
-                    error.message
-                );
-
-
-            }
-            finally{
-
-
-                setLoading(false);
-
-
-            }
-
-
-        };
-
-
-
-        fetchHistory();
-
-
-
-    },[doctorId]);
-
-
-
-    return {
-
-        history,
-
-        loading
-
+        setHistory(uniquePatients);
+      } catch (error: any) {
+        console.error(
+          "Patient history error:",
+          error.response?.data || error.message
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
+    fetchHistory();
+  }, [doctorId]);
 
+  return {
+    history,
+    loading,
+  };
 }
