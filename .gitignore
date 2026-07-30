@@ -10,7 +10,32 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build/
+build
+coverage/
+coverage
 *.local
+*.env
+.env
+.env.*
+*.env.*
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+
+# Generated MRI scan images
+**/storage/mri_scans/**/*.png
+**/storage/mri_scans/**/*.jpg
+**/storage/mri_scans/**/*.jpeg
+**/storage/mri_scans/**/*.gif
+**/storage/mri_scans/**/*.webp
+**/storage/mri_scans/**/*.bmp
+**/storage/mri_scans/**/*.tiff
+**/storage/mri_scans/**/*.tif
 
 # Editor directories and files
 .vscode/*

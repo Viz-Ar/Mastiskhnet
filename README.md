@@ -1,16 +1,37 @@
-# React + Vite
+# Brain Tumor MRI Analysis Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repository contains a full-stack application for brain tumor MRI analysis. It includes a React/Vite frontend for medical staff and a Python/FastAPI backend for processing MRI uploads, generating predictions, and managing reports.
 
-Currently, two official plugins are available:
+## Project Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Upload and manage MRI scan data
+- Review generated segmentation and prediction outputs
+- Track patient and scan history
+- Prepare reports for medical review
 
-## React Compiler
+## Repository Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- frontend: React application for the user interface
+- backend: FastAPI services, data models, and processing logic
+- public and src: shared frontend assets and application source
 
-## Expanding the ESLint configuration
+## Development Notes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Environment files such as .env are ignored to prevent secrets from being committed.
+- Build artifacts such as dist, build, and coverage are ignored.
+- Generated MRI image outputs under storage/mri_scans are ignored to keep the repository clean.
+
+## Getting Started
+
+1. Install frontend dependencies with npm install.
+2. Install backend dependencies with pip install -r requirements.txt.
+3. Start the frontend and backend services as needed for local development.
+
+## Git Hygiene
+
+The repository includes ignore rules for:
+
+- environment files (.env, .env.local, etc.)
+- build and cache output
+- Python bytecode and virtual environment artifacts
+- generated MRI scan images and related outputs
